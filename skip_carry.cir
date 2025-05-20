@@ -1,0 +1,58 @@
+***two_bit carry skip adder using nand gate in 90nm cmos technology***
+.model pmod pmos level=54 version=4.7
+.model nmod nmos level=54 version=4.7
+
+.subckt nand_two a b out vdd vss
+m1 out a vdd vdd pmod w=200u l=10u
+m2 out b vdd vdd pmod w=200u l=10u
+m3 out a net1 net1 nmod w=200u l=10u
+m4 net1 b vss vss nmod w=200u l=10u
+.ends
+
+.subckt cmos_inver in out vdd vss
+m1 out in vdd vdd pmod w=200u l=10u
+m2 out in vss vss nmod w=100u l=10u
+.ends
+
+.subckt two_mux s_bar i0 s i1 out vdd vss
+m1 n1 s_bar vdd vdd pmod w=400u l=10u
+m2 n1 i0 vdd vdd pmod w=400u l=10u
+m3 out s n1 n1 pmod w=400u l=10u
+m4 out i1 n1 n1 pmod w=400u l=10u
+m5 out s_bar n2 n2 nmod w=200u l=10u
+m6 n2 i0 vss vss nmod w=200u l=10u
+m7 out s n3 n3 nmod w=200u l=10u
+m8 n3 i1 vss vss nmod w=200u l=10u
+.ends
+
+.subckt full_add a b cin sum cout p_out vdd vss
+x1 a b n1 vdd vss nand_two
+x2 a n1 n2 vdd vss nand_two
+x3 n1 b n3 vdd vss nand_two
+x4 n2 n3 p_out vdd vss nand_two
+x5 p_out cin n4 vdd vss nand_two
+x6 n4 p_out n5 vdd vss nand_two
+x7 cin n4 n6 vdd vss nand_two
+x8 n5 n6 sum vdd vss nand_two
+x9 n4 n1 cout vdd vss nand_two
+.ends
+
+va0 25 0 pulse (0 1.8 0 1n 1n 10n 20n)
+va1 26 0 pulse (0 1.8 0 1n 1n 20n 40n)
+vb0 27 0 pulse (0 1.8 0 1n 1n 40n 80n)
+vb1 28 0 pulse (0 1.8 0 1n 1n 80n 160n)
+vcin 29 0 dc 0v
+vdd 3 0 dc 1.8v
+
+xfa1 25 27 29 32 30 34 3 0 full_add
+xfa2 26 28 30 33 31 35 3 0 full_add
+xn1 34 35 36 3 0 nand_two
+xinv_top 36 37 3 0 cmos_inver
+xmux_top 36 31 37 29 38 3 0 two_mux
+
+.tran 0.1n 300n
+.control
+run
+plot v(25) v(26) v(27) v(28) v(32) v(33) v(38)
+.endc
+.end
